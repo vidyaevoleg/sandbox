@@ -62,7 +62,7 @@ var methods = {
             var noiseScale = 0.2;
             
             // texture to additively blend with base image texture
-            var blendTexture = new THREE.ImageUtils.loadTexture( 'assets/images/cloud.jpg' );
+            var blendTexture = new THREE.ImageUtils.loadTexture( 'assets/images/sun.jpg' );
             blendTexture.wrapS = blendTexture.wrapT = THREE.RepeatWrapping; 
             // multiplier for distortion speed 
             var blendSpeed = 0.01;
@@ -110,8 +110,8 @@ var methods = {
 
             pointColor = "#ede843";
             pointLight = new THREE.PointLight(pointColor);
-            pointLight.distance = 500;
-            pointLight.intensity = 1;
+            pointLight.distance = 800;
+            pointLight.intensity = 1.1;
 
             scene.add(sphere).add(pointLight);
         },
@@ -150,8 +150,10 @@ var methods = {
                     material = new THREE.MeshPhongMaterial({color: moonData.color, });
                     moon = new THREE.Mesh(geometry, material);
                     moon.radius = moonData.radius;
-                    moon.currentStep = 0;
-                    moon.period = moonData.period;
+                    moon.currentStepX = 0;
+                    moon.currentStepY = 0;
+                    moon.currentStepZ = 0;
+                    moon.periods = moonData.periods;
                     moon.name = moonData.name;
 
                     sphere.moons.add(moon);
@@ -168,18 +170,20 @@ var methods = {
                 for (var k in planet.rings) {
                     step += 0.05;
                     var ring = planet.rings[k], 
-                        r1 = planet.size * (1.25 + step),
+                        r1 = planet.size * (1.25 + step) * k * 0.4,
                         r2 = r1 + ring.delta_radius,
                         geometry = new THREE.RingGeometry(r1, r2, 32);
                     material = new THREE.MeshPhongMaterial({color: ring.color, side: THREE.DoubleSide });
                     three_ring = new THREE.Mesh(geometry, material);
+                    three_ring.rotation.z = -3/4 * Math.PI;
+                    three_ring.rotation.x = 1/4 * Math.PI;
                     three_ring.name = ring.name;
 
                     sphere.rings.add(three_ring);
                 }
                 scene.add(sphere.rings);
             }
-            
+        
             scene.add(sphere);
         },
         update : function (planet) {
@@ -191,9 +195,14 @@ var methods = {
 
             if (planet.moons) {
                 planet.moons.children.forEach(function (moon) {
-                    moon.currentStep += moon.period;
-                    moon.position.x = planet.position.x + (Math.cos(moon.currentStep) * moon.radius);
-                    moon.position.z = planet.position.z + (Math.sin(moon.currentStep) * moon.radius);
+                    
+                    if (moon.periods) {
+                        moon.currentStepX += moon.periods.x;
+                        moon.currentStepZ += moon.periods.z;
+
+                        moon.position.x = planet.position.x + (Math.cos(moon.currentStepX) * moon.radius);
+                        moon.position.z = planet.position.z + (Math.sin(moon.currentStepZ) * moon.radius);
+                    }
                 });
             }
 
@@ -201,7 +210,7 @@ var methods = {
                 planet.rings.children.forEach(function (ring) {
                     ring.position.copy(planet.position);
                     ring.rotation.z = (planet.currentStep / 10) * 2 * Math.PI;
-                    ring.rotation.z = (planet.currentStep / 10) * 2 * Math.PI;
+                    // ring.rotation.y = (planet.currentStep / 10) * 2 * Math.PI;
                 });
             }
         }

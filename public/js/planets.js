@@ -3,7 +3,7 @@ var planets = [
     { name : 'mercury', radius : 50, texture: 'mercury', period : 0.002, size : 3 },
     { name : 'venera', radius : 80, texture: 'venera', period : 0.001, size : 4 },
     { name : 'earth', radius : 110, texture: 'earth', period : 0.001, size : 5, moons : [
-        { name : 'moon-earth', radius : 10, color : 'white', period : 0.02, size : 3 }
+        { name : 'moon-earth', radius : 10, color : 'white', periods : {x : 0.02, z : 0.02 }, size : 1.4 }
     ]},
     { name : 'mars', radius : 150, texture : 'mars', period : 0.001, size : 3 },
     { name : 'jupiter', radius : 200, texture: 'jupiter', period : 0.0009, size : 10, moons_count: 60},
@@ -36,20 +36,24 @@ function addTo (_planet, object, count) {
         ind = count;
         
         if (object == 'moons') {
+            var rnd = (Math.random() * 3) - 1.5;
             _planet[object].push(
                 { 
-                    name : 'moon-earth' + ind ,
-                    radius : _planet.size + 0.02 * (ind + 10), 
-                    color : 'white', 
-                    period : 0.02, 
-                    size : (ind + 1) * 0.05 
+                    name : 'moon-earth-' + ind ,
+                    radius : _planet.size + 0.2 * (ind + 10), 
+                    color : 'white',
+                    periods : {
+                        x : ind * rnd * 0.0002,
+                        z : ind * rnd * 0.0002,
+                    }, 
+                    size : (ind + 1) * 0.02 
                 }
             ) 
         } else if (object == 'rings') {
             _planet[object].push(
                 {
                     name: 'ring-' + _planet.name + '-' + ind, 
-                    delta_radius: 0.3 + 0.1 * ind, 
+                    delta_radius: 2 + 0.7 * ind, 
                     color: 'green'    
                 }
             )

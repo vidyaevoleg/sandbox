@@ -25,100 +25,115 @@ var planets = [
 
 function setup() {
 
-  var scene = new THREE.Scene();
-  
-  var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.x = -250;
-  camera.position.y = 400;
-  camera.position.z = 200;
-  camera.lookAt(scene.position);
+    var scene = new THREE.Scene();
+    var clock = new THREE.Clock();
 
-  var renderer = new THREE.WebGLRenderer();
-  renderer.setClearColor(new THREE.Color(0x000));
-  renderer.setSize(window.innerWidth, window.innerHeight);
+    var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.x = -250;
+    camera.position.y = 400;
+    camera.position.z = 200;
+    camera.lookAt(scene.position);
 
-  var ambiColor = "#0c0c0c";
-  var ambientLight = new THREE.AmbientLight(ambiColor);
-  scene.add(ambientLight);
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setClearColor(new THREE.Color(0x000));
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
-  var three_planets = new THREE.Mesh();
+    var ambiColor = "#0c0c0c";
+    var ambientLight = new THREE.AmbientLight(ambiColor);
+    scene.add(ambientLight);
 
-  for ( var i = 0; i < planets.length; i++ ) {
-    new_planet = new ObjectConstructor(planets[i]);
+    var planetGroup = new THREE.Mesh();
+    scene.add(planetGroup);
 
-    for ( var obj in new_planet) {
-      if (new_planet[obj]) {
-        scene.add(new_planet[obj]);
-      }
+    for (var i in planets) {
+        var pl = planets[i];
+
+        if (pl.name == 'sun') {
+            methods.sun.create(pl, planetGroup);
+        } else {
+            methods.planet.create(pl, planetGroup);
+        }
     }
 
-  }
-
-  scene.add(three_planets);
-  scene.add(new CloudConstructor())
-
-  var cameraStep = 0;
+    methods.particles.create(scene);
   
     function render () {
 
-        scene.children.forEach(function (e) {
-
-            if (!e.name || e.name == 'sun' || e.name == "particles" ) return;
-
-            e.currentStep += e.period;
-            e.position.x = Math.cos(e.currentStep) * e.radius;
-            e.position.z = Math.sin(e.currentStep) * e.radius;
-
-            if (e.moons) {
-                e.moons.children.forEach(function (moon) {
-                    moon.currentStep += moon.period;
-                    moon.position.x = e.position.x + (Math.cos(moon.currentStep) * moon.radius);
-                    moon.position.z = e.position.z + (Math.sin(moon.currentStep) * moon.radius);
-                });
-            }
-
-            if (e.rings) {
-                e.rings.children.forEach(function (ring) {
-                    ring.position.copy(e.position);
-                    ring.rotation.z = (e.currentStep / 10) * 2 * Math.PI;
-                });
-            }
-        });
-
-        cameraStep += 0.0001;
-        camera.position.x = Math.cos(cameraStep) * -250;
-        camera.position.z = Math.sin(cameraStep) * 200;
-        camera.lookAt(scene.position);
+        planetGroup.children.forEach(methods.planet.update);
+        methods.sun.update(clock);
+        methods.camera.update(camera, scene);
 
         requestAnimationFrame(render);
         renderer.render(scene, camera);
     }
 
-
     document.getElementById("webgl").appendChild(renderer.domElement);
     render();
+}
 
-
-    function ObjectConstructor (planet) {
-    
-        if (planet.name == 'sun') {
-            return new SunConstructor(planet);
-        } else return new PlanetConstructor(planet);
-
-        function SunConstructor(planet) {
+var methods = {
+    sun : {
+        create : function (planet, scene) {
             geometry = new THREE.SphereGeometry(planet.size, 40, 40);
-            // material = new THREE.MeshBasicMaterial({color: planet.color});
-            material = new THREE.MeshPhongMaterial({
-                color: planet.color, 
-                shininess: 100.0,
-                ambient: 0xffff00,
-                emissive: 0xffff00,
-                specular: 0xffffff 
-            });
+            var lavaTexture = new THREE.ImageUtils.loadTexture( 'assets/images/sun.jpg');
+            lavaTexture.wrapS = lavaTexture.wrapT = THREE.RepeatWrapping; 
+            // multiplier for distortion speed      
+            var baseSpeed = 0.01;
+            // number of times to repeat texture in each direction
+            var repeatS = repeatT = 6.0;
+            
+            // texture used to generate "randomness", distort all other textures
+            var noiseTexture = new THREE.ImageUtils.loadTexture( 'assets/images/cloud.png' );
+            noiseTexture.wrapS = noiseTexture.wrapT = THREE.RepeatWrapping; 
+            // magnitude of noise effect
+            var noiseScale = 0.2;
+            
+            // texture to additively blend with base image texture
+            var blendTexture = new THREE.ImageUtils.loadTexture( 'assets/images/sun.jpg' );
+            blendTexture.wrapS = blendTexture.wrapT = THREE.RepeatWrapping; 
+            // multiplier for distortion speed 
+            var blendSpeed = 0.01;
+            // adjust lightness/darkness of blended texture
+            var blendOffset = 0.01;
+
+            // texture to determine normal displacement
+            var bumpTexture = noiseTexture;
+            bumpTexture.wrapS = bumpTexture.wrapT = THREE.RepeatWrapping; 
+            // multiplier for distortion speed      
+            var bumpSpeed   = 0.02;
+            // magnitude of normal displacement
+            var bumpScale   = 20.0;
+            
+            customUniforms = {
+                baseTexture:    { type: "t", value: lavaTexture },
+                baseSpeed:      { type: "f", value: baseSpeed },
+                repeatS:        { type: "f", value: repeatS },
+                repeatT:        { type: "f", value: repeatT },
+                noiseTexture:   { type: "t", value: noiseTexture },
+                noiseScale:     { type: "f", value: noiseScale },
+                blendTexture:   { type: "t", value: blendTexture },
+                blendSpeed:     { type: "f", value: blendSpeed },
+                blendOffset:    { type: "f", value: blendOffset },
+                bumpTexture:    { type: "t", value: bumpTexture },
+                bumpSpeed:      { type: "f", value: bumpSpeed },
+                bumpScale:      { type: "f", value: bumpScale },
+                alpha:          { type: "f", value: 1.0 },
+                time:           { type: "f", value: 1.0 }
+            };
+            
+            // create custom material from the shader code above
+            //   that is within specially labeled script tags
+            var material = new THREE.ShaderMaterial( 
+            {
+                uniforms: customUniforms,
+                vertexShader:   document.getElementById( 'vertexShader'   ).textContent,
+                fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+            }   );
             sphere = new THREE.Mesh(geometry, material);
             sphere.position.x = planet.radius;
             sphere.position.y = 0;
             sphere.position.z = 0;
+            sphere.rotation.z = -7/16 * Math.PI;
             sphere.name = 'sun';
 
             pointColor = "orange";
@@ -126,13 +141,15 @@ function setup() {
             pointLight.distance = 500;
             pointLight.intensity = 2;
 
-            return {
-                sun : sphere,
-                pointLight: pointLight        
-            }
+            scene.add(sphere).add(pointLight);
+        },
+        update : function (clock) {
+            var delta = clock.getDelta();
+            customUniforms.time.value += delta;   
         }
-
-        function PlanetConstructor(planet) {
+    },
+    planet : {
+        create : function (planet, scene) {
             geometry = new THREE.SphereGeometry(planet.size, 20, 20);
             material = new THREE.MeshPhongMaterial({color: planet.color});
             sphere = new THREE.Mesh(geometry, material);
@@ -182,49 +199,67 @@ function setup() {
                 }
             }
 
-            return {
-                planet: sphere,
-                moons: sphere.moons, 
-                rings: sphere.rings
+            scene.add(sphere).add(sphere.moons).add(sphere.rings);
+        },
+        update : function (planet) {
+            if (!planet.name || planet.name == 'sun') return;
+
+            planet.currentStep += planet.period;
+            planet.position.x = Math.cos(planet.currentStep) * planet.radius;
+            planet.position.z = Math.sin(planet.currentStep) * planet.radius;
+
+            if (planet.moons) {
+                planet.moons.children.forEach(function (moon) {
+                    moon.currentStep += moon.period;
+                    moon.position.x = planet.position.x + (Math.cos(moon.currentStep) * moon.radius);
+                    moon.position.z = planet.position.z + (Math.sin(moon.currentStep) * moon.radius);
+                });
+            }
+
+            if (planet.rings) {
+                planet.rings.children.forEach(function (ring) {
+                    ring.position.copy(planet.position);
+                    ring.rotation.z = (planet.currentStep / 10) * 2 * Math.PI;
+                });
             }
         }
-    }
-
-    function CloudConstructor() {
-        var geom = new THREE.Geometry(),
-            material = new THREE.PointCloudMaterial({
-            size: 1,
-            opacity : 0.5,
-            transparent : true,
-            color: 'white'
-        }),
-        count = 10000;
-        
-        while (count--) {
-            var new_particle = new ParticleConstructor();
-
-            geom.vertices.push(new_particle.particle);
-            geom.colors.push(new_particle.color);
+    },
+    camera : {
+        cameraStep : 0,
+        update : function (camera, scene) {
+            this.cameraStep += 0.0001;
+            camera.position.x = Math.cos(this.cameraStep) * -250;
+            camera.position.z = Math.sin(this.cameraStep) * 200;
+            camera.lookAt(scene.position);
         }
-        
-        cloud = new THREE.PointCloud(geom, material);
-        cloud.name = "particles";
+    },
+    particles : {
+        create : function (group) {
+            var geom = new THREE.Geometry(),
+                material = new THREE.PointCloudMaterial({
+                size: 1,
+                opacity : 0.5,
+                transparent : true,
+                color: 'white'
+            }),
+            count = 10000;
+            
+            while (count--) {
+                var range = range || 1200;
+                var particle = new THREE.Vector3(Math.random() * range - range / 2, Math.random() * range - range / 2, Math.random() * range - range / 2);
+                var color = new THREE.Color(0x00ff00);
+                color.setHSL(color.getHSL().h, color.getHSL().s, Math.random() * color.getHSL().l);
 
-        return cloud;
-
-
-        function ParticleConstructor( range) {
-
-            var range = range || 1200;
-            var particle = new THREE.Vector3(Math.random() * range - range / 2, Math.random() * range - range / 2, Math.random() * range - range / 2);
-            var color = new THREE.Color(0x00ff00);
-            color.setHSL(color.getHSL().h, color.getHSL().s, Math.random() * color.getHSL().l);
-
-            return {
-                particle : particle,
-                color : color
+                geom.vertices.push(particle);
+                geom.colors.push(color);
             }
+            
+            cloud = new THREE.PointCloud(geom, material);
+            cloud.name = "particles";
+
+            group.add(cloud);
         }
     }
 }
+
 window.onload = setup;

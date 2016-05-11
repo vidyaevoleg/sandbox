@@ -1,27 +1,3 @@
-var planets = [
-    { name : 'sun', radius : 0, color : 'yellow', period : 0, size : 60 },
-    { name : 'planet-1', radius : 110, color : 'orange', period : 0.003, size : 1, rings: [
-        { name: 'ring-3', delta_radius: 3, color: 'yellow'},
-    ]},
-    { name : 'planet-2', radius : 120, color : 'lightblue', period : 0.004, size : 2 },
-    { name : 'earth', radius : 130, color : 'green', period : 0.005, size : 5, moons : [
-        { name : 'moon', radius : 7, color : 'white', period : 0.04, size : 1 }
-    ]},
-    { name : 'planet-4', radius : 145, color : 'red', period : 0.006, size : 4, rings: [
-        { name: 'ring-1', delta_radius: 2, color: 'white'},
-        { name: 'ring-2', delta_radius: 1, color: 'green'},
-    ]},
-    { name : 'planet-5', radius : 165, color : 'cyan', period : 0.007, size : 5, rings: [
-        { name: 'ring-4', delta_radius: 5, color: 'blue'}
-    ]},
-    { name : 'planet-6', radius : 185, color : 'magenta', period : 0.009, size : 6, moons : [
-        { name : 'moon-1', radius : 8, color : 'white', period : 0.04, size : 1 },
-        { name : 'moon-2', radius : 10, color : 'white', period : 0.03, size : 1.4 },
-        { name : 'moon-3', radius : 12, color : 'white', period : 0.02, size : 1.5 },
-        { name : 'moon-4', radius : 15, color : 'white', period : 0.05, size : 1.8 },
-    ]},
-    { name : 'planet-7', radius : 210, color : 'orange', period : 0.01, size : 7 }
-]
 
 function setup() {
 
@@ -77,19 +53,16 @@ var methods = {
             geometry = new THREE.SphereGeometry(planet.size, 40, 40);
             var lavaTexture = new THREE.ImageUtils.loadTexture( 'assets/images/sun.jpg');
             lavaTexture.wrapS = lavaTexture.wrapT = THREE.RepeatWrapping; 
-            // multiplier for distortion speed      
+
             var baseSpeed = 0.01;
-            // number of times to repeat texture in each direction
             var repeatS = repeatT = 6.0;
             
-            // texture used to generate "randomness", distort all other textures
             var noiseTexture = new THREE.ImageUtils.loadTexture( 'assets/images/cloud.png' );
             noiseTexture.wrapS = noiseTexture.wrapT = THREE.RepeatWrapping; 
-            // magnitude of noise effect
             var noiseScale = 0.2;
             
             // texture to additively blend with base image texture
-            var blendTexture = new THREE.ImageUtils.loadTexture( 'assets/images/sun.jpg' );
+            var blendTexture = new THREE.ImageUtils.loadTexture( 'assets/images/cloud.jpg' );
             blendTexture.wrapS = blendTexture.wrapT = THREE.RepeatWrapping; 
             // multiplier for distortion speed 
             var blendSpeed = 0.01;
@@ -100,9 +73,9 @@ var methods = {
             var bumpTexture = noiseTexture;
             bumpTexture.wrapS = bumpTexture.wrapT = THREE.RepeatWrapping; 
             // multiplier for distortion speed      
-            var bumpSpeed   = 0.02;
+            var bumpSpeed = 0.01;
             // magnitude of normal displacement
-            var bumpScale   = 20.0;
+            var bumpScale = 2.0;
             
             customUniforms = {
                 baseTexture:    { type: "t", value: lavaTexture },
@@ -123,12 +96,11 @@ var methods = {
             
             // create custom material from the shader code above
             //   that is within specially labeled script tags
-            var material = new THREE.ShaderMaterial( 
-            {
-                uniforms: customUniforms,
-                vertexShader:   document.getElementById( 'vertexShader'   ).textContent,
-                fragmentShader: document.getElementById( 'fragmentShader' ).textContent
-            }   );
+            var material = new THREE.ShaderMaterial({
+              uniforms: customUniforms,
+              vertexShader:   document.getElementById('vertexShader').textContent,
+              fragmentShader: document.getElementById('fragmentShader').textContent
+            });
             sphere = new THREE.Mesh(geometry, material);
             sphere.position.x = planet.radius;
             sphere.position.y = 0;
@@ -136,10 +108,10 @@ var methods = {
             sphere.rotation.z = -7/16 * Math.PI;
             sphere.name = 'sun';
 
-            pointColor = "orange";
+            pointColor = "#ede843";
             pointLight = new THREE.PointLight(pointColor);
             pointLight.distance = 500;
-            pointLight.intensity = 2;
+            pointLight.intensity = 1;
 
             scene.add(sphere).add(pointLight);
         },
@@ -151,7 +123,13 @@ var methods = {
     planet : {
         create : function (planet, scene) {
             geometry = new THREE.SphereGeometry(planet.size, 20, 20);
-            material = new THREE.MeshPhongMaterial({color: planet.color});
+            if (planet.texture) {
+              texture = new THREE.ImageUtils.loadTexture('assets/images/' + planet.texture + '.jpg');
+              material = new THREE.MeshPhongMaterial({map: texture, side: THREE.DoubleSide });
+            } else {
+              material = new THREE.MeshPhongMaterial({color: planet.color, side: THREE.DoubleSide});
+            }
+
             sphere = new THREE.Mesh(geometry, material);
 
             sphere.position.x = planet.radius;
@@ -169,7 +147,7 @@ var methods = {
                 for (var k in planet.moons) {
                     moonData = planet.moons[k];
                     geometry = new THREE.SphereGeometry(moonData.size, 20, 20);
-                    material = new THREE.MeshPhongMaterial({color: moonData.color});
+                    material = new THREE.MeshPhongMaterial({color: moonData.color, });
                     moon = new THREE.Mesh(geometry, material);
                     moon.radius = moonData.radius;
                     moon.currentStep = 0;
@@ -185,7 +163,6 @@ var methods = {
 
             if (planet.rings) {
                 sphere.rings = new THREE.Mesh();
-                // { name: 'ring-1', delta_radius: 3, color: 'white'},
                 step = 0;
 
                 for (var k in planet.rings) {
@@ -223,6 +200,7 @@ var methods = {
             if (planet.rings) {
                 planet.rings.children.forEach(function (ring) {
                     ring.position.copy(planet.position);
+                    ring.rotation.z = (planet.currentStep / 10) * 2 * Math.PI;
                     ring.rotation.z = (planet.currentStep / 10) * 2 * Math.PI;
                 });
             }

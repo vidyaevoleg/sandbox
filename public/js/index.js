@@ -178,6 +178,9 @@ var methods = {
 
                     sphere.moons.add(moon);
                 }
+
+                scene.add(sphere.moons);
+
             }
 
             if (planet.rings) {
@@ -197,9 +200,10 @@ var methods = {
 
                     sphere.rings.add(three_ring);
                 }
+                scene.add(sphere.rings);
             }
-
-            scene.add(sphere).add(sphere.moons).add(sphere.rings);
+            
+            scene.add(sphere);
         },
         update : function (planet) {
             if (!planet.name || planet.name == 'sun') return;

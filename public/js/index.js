@@ -108,7 +108,8 @@ var methods = {
             sphere.rotation.z = -7/16 * Math.PI;
             sphere.name = 'sun';
 
-            pointColor = "#ede843";
+            // pointColor = "#ede843";
+            pointColor = "#fff";
             pointLight = new THREE.PointLight(pointColor);
             pointLight.distance = 800;
             pointLight.intensity = 1.1;

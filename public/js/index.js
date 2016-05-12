@@ -1,10 +1,10 @@
-
+var planetGroup, camera, controls;
 function setup() {
 
     var scene = new THREE.Scene();
     var clock = new THREE.Clock();
     var stats = initStats();
-    var camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.x = 350;
     camera.position.y = 400;
     camera.position.z = 200;
@@ -13,12 +13,18 @@ function setup() {
     var renderer = new THREE.WebGLRenderer();
     renderer.setClearColor(new THREE.Color(0x000));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMapEnabled = true;
+    renderer.shadowMapSoft = true;
+
+    orbitControl = new THREE.OrbitControls(camera, renderer.domElement);
+    orbitControl.target = new THREE.Vector3(0, 0, 0);
+    orbitControl.maxDistance = 800;
 
     var ambiColor = "#0c0c0c";
     var ambientLight = new THREE.AmbientLight(ambiColor);
     scene.add(ambientLight);
 
-    var planetGroup = new THREE.Mesh();
+    planetGroup = new THREE.Mesh();
     scene.add(planetGroup);
 
     for (var i in planets) {
@@ -32,6 +38,7 @@ function setup() {
     }
 
     methods.particles.create(scene);
+    methods.comets.startCreation(scene);
 
     var controls = new function () {
       this.cameraY = camera.position.y;
@@ -49,6 +56,10 @@ function setup() {
         planetGroup.children.forEach(methods.planet.update);
         methods.sun.update(clock);
         methods.camera.update(camera, scene);
+        methods.comets.update(scene);
+
+        orbitControl.update(clock.getDelta());
+
 
         requestAnimationFrame(render);
         renderer.render(scene, camera);
@@ -140,11 +151,86 @@ var methods = {
             pointLight.distance = 800;
             pointLight.intensity = 1.1;
 
-            scene.add(sphere).add(pointLight);
+            scene.add(sphere);
+            scene.add(pointLight);
         },
         update : function (clock) {
             var delta = clock.getDelta();
             customUniforms.time.value += delta;   
+        }
+    },
+    comets : {
+        data : {
+            loadedMesh : null
+        },
+        startCreation : function (scene) {
+            this.data.comets = new THREE.Mesh();
+            scene.add(this.data.comets);
+
+            setInterval(function () {
+                this.create(scene);
+            }.bind(this), 5000);
+        },
+        loadMesh : function (fn) {
+            var loader = new THREE.OBJLoader();
+            loader.load('assets/textures/comet.obj', function (comet) {
+                this.data.loadedMesh = comet;
+                fn(comet);
+            }.bind(this));
+        },
+        create : function create () {
+            if (this.data.loadedMesh) {
+                fn(this.data.loadedMesh.clone());
+            } else {
+                this.loadMesh(fn);
+            }
+
+            function fn(comet) {
+                var material = new THREE.MeshLambertMaterial({color: '#a43'});
+                comet.children.forEach(function (child) {
+                    child.material = material;
+                    child.geometry.computeFaceNormals();
+                    child.geometry.computeVertexNormals();
+                });
+
+                mesh = comet;
+                comet.scale.set(10, 10, 10);
+                comet.rotation.x = -0.3;
+
+                var range = 1200;
+
+                ['x', 'y', 'z'].map(function (el) {
+                    comet.position[el] = Math.random() * range - range / 2;
+                });
+                comet.position.y = camera.position.y + 100;
+
+                comet.destinationPoint = planetGroup.children.filter(function (el) {
+                    return el._type == 'planet';
+                })[~~(Math.random() * 6)].position;
+
+                var iterations = 400;
+                var diffs = {
+                    x : comet.destinationPoint.x - comet.position.x,
+                    y : comet.destinationPoint.y - comet.position.y,
+                    z : comet.destinationPoint.z - comet.position.z
+                };
+
+                var speed = {
+                    x : diffs.x / iterations,
+                    y : diffs.y / iterations,
+                    z : diffs.z / iterations
+                };
+                comet.speed = speed;
+                methods.comets.data.comets.add(comet);
+            }
+        },
+        update : function (scene) {
+            this.data.comets.children.forEach(function (comet) {
+                'xyz'.split('').map(function (el) {
+                    comet.position[el] += comet.speed[el];
+                    comet.rotation[el] += 0.01;
+                });
+            });
         }
     },
     planet : {
@@ -157,10 +243,10 @@ var methods = {
               material = new THREE.MeshPhongMaterial({color: planet.color, side: THREE.DoubleSide});
             }
 
-            sphere = new THREE.Mesh(geometry, material);
+            var sphere = new THREE.Mesh(geometry, material);
             sphere.x0 = planet.radius;
             sphere.y0 = planet.radius * 0.8 + planet.radius * 0.2 * Math.random();
-            sphere.z0 = planet.radius * 0.5 + planet.radius * 0.5 * Math.random();;
+            sphere.z0 = planet.radius * 0.5 + planet.radius * 0.5 * Math.random();
             sphere.position.x = sphere.x0;
             sphere.position.y = sphere.y0;
             sphere.position.z = sphere.z0;
@@ -169,6 +255,7 @@ var methods = {
             sphere.currentStep = 0;
             sphere.period = planet.period;
             sphere.name = planet.name;
+            sphere._type = 'planet';
 
             if (planet.moons) {
                 sphere.moons = new THREE.Mesh();
@@ -243,7 +330,6 @@ var methods = {
                 planet.rings.children.forEach(function (ring) {
                     ring.position.copy(planet.position);
                     ring.rotation.z = (planet.currentStep / 10) * 2 * Math.PI;
-                    // ring.rotation.y = (planet.currentStep / 10) * 2 * Math.PI;
                 });
             }
         }
@@ -251,10 +337,13 @@ var methods = {
     camera : {
         cameraStep : 0,
         update : function (camera, scene) {
-            this.cameraStep += 0.0001;
-            camera.position.x = Math.cos(this.cameraStep) * -250;
-            camera.position.z = Math.sin(this.cameraStep) * 200;
+            this.cameraStep += 0.0002;
+            // camera.position.x = Math.cos(this.cameraStep) * -250;
+            // camera.position.z = Math.sin(this.cameraStep) * 200;
             camera.lookAt(scene.position);
+
+            // orbitControl.target.x = camera.position.x;
+            // orbitControl.target.z = camera.position.z;
         }
     },
     particles : {

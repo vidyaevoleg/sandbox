@@ -3,9 +3,9 @@ function setup() {
 
     var scene = new THREE.Scene();
     var clock = new THREE.Clock();
-
-    var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.x = -250;
+    var stats = initStats();
+    var camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.x = 350;
     camera.position.y = 400;
     camera.position.z = 200;
     camera.lookAt(scene.position);
@@ -32,9 +32,20 @@ function setup() {
     }
 
     methods.particles.create(scene);
+
+    var controls = new function () {
+      this.cameraY = camera.position.y;
+    };
+
+    var gui = new dat.GUI();
+
+    gui.add(controls, 'cameraY', camera.position.y - 500, camera.position.y + 500).onChange(function (e) {
+      camera.position.y = e;
+    });
   
     function render () {
 
+        stats.update();
         planetGroup.children.forEach(methods.planet.update);
         methods.sun.update(clock);
         methods.camera.update(camera, scene);
@@ -44,6 +55,21 @@ function setup() {
     }
 
     document.getElementById("webgl").appendChild(renderer.domElement);
+
+
+    function initStats() {
+
+        stats = new Stats();
+        stats.setMode(0);
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = '0px';
+        stats.domElement.style.top = '0px';
+
+        document.getElementById("stats").appendChild(stats.domElement);
+
+        return stats;
+    }
     render();
 }
 
@@ -132,10 +158,12 @@ var methods = {
             }
 
             sphere = new THREE.Mesh(geometry, material);
-
-            sphere.position.x = planet.radius;
-            sphere.position.y = 0;
-            sphere.position.z = 0;
+            sphere.x0 = planet.radius;
+            sphere.y0 = planet.radius * 0.8 + planet.radius * 0.2 * Math.random();
+            sphere.z0 = planet.radius * 0.5 + planet.radius * 0.5 * Math.random();;
+            sphere.position.x = sphere.x0;
+            sphere.position.y = sphere.y0;
+            sphere.position.z = sphere.z0;
 
             sphere.radius = planet.radius;
             sphere.currentStep = 0;
@@ -148,7 +176,10 @@ var methods = {
                 for (var k in planet.moons) {
                     moonData = planet.moons[k];
                     geometry = new THREE.SphereGeometry(moonData.size, 20, 20);
-                    material = new THREE.MeshPhongMaterial({color: moonData.color, });
+                    pic_ind = parseInt(3 * Math.random()) + 1;
+                    texture_pic = 'assets/images/plane' + pic_ind + '.jpg'
+                    texture = new THREE.ImageUtils.loadTexture(texture_pic);
+                    material = new THREE.MeshPhongMaterial({map: texture, side: THREE.DoubleSide });                    
                     moon = new THREE.Mesh(geometry, material);
                     moon.radius = moonData.radius;
                     moon.currentStepX = 0;
@@ -191,8 +222,8 @@ var methods = {
             if (!planet.name || planet.name == 'sun') return;
 
             planet.currentStep += planet.period;
-            planet.position.x = Math.cos(planet.currentStep) * planet.radius;
-            planet.position.z = Math.sin(planet.currentStep) * planet.radius;
+            planet.position.x = Math.cos(planet.currentStep) * planet.x0;
+            planet.position.z = Math.sin(planet.currentStep) * planet.z0;
 
             if (planet.moons) {
                 planet.moons.children.forEach(function (moon) {
@@ -203,6 +234,7 @@ var methods = {
 
                         moon.position.x = planet.position.x + (Math.cos(moon.currentStepX) * moon.radius);
                         moon.position.z = planet.position.z + (Math.sin(moon.currentStepZ) * moon.radius);
+                        moon.position.y = planet.position.y + (Math.sin(moon.currentStepY) * moon.radius);
                     }
                 });
             }

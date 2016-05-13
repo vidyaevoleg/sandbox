@@ -6,7 +6,7 @@ function setup() {
     var stats = initStats();
     camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.x = 350;
-    camera.position.y = 300;
+    camera.position.y = 100;
     camera.position.z = 200;
     camera.lookAt(scene.position);
 
@@ -386,7 +386,7 @@ var methods = {
                 transparent : true,
                 color: 'white'
             }),
-            count = 10000;
+            count = 15000;
             
             while (count--) {
                 var range = range || 1200;

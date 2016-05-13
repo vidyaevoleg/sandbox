@@ -6,7 +6,7 @@ function setup() {
     var stats = initStats();
     camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.x = 350;
-    camera.position.y = 400;
+    camera.position.y = 300;
     camera.position.z = 200;
     camera.lookAt(scene.position);
 
@@ -15,6 +15,18 @@ function setup() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMapEnabled = true;
     renderer.shadowMapSoft = true;
+
+    var renderPass = new THREE.RenderPass(scene, camera);
+    var effectFilm = new THREE.FilmPass(1.3, 0.7, 256, false);
+    effectFilm.renderToScreen = true;
+
+    var effectGlitch = new THREE.GlitchPass(64);
+    effectGlitch.renderToScreen = true;
+
+    var composer = new THREE.EffectComposer(renderer);
+    composer.addPass(renderPass);
+    composer.addPass(effectFilm);
+    // composer.addPass(effectGlitch);
 
     orbitControl = new THREE.OrbitControls(camera, renderer.domElement);
     orbitControl.target = new THREE.Vector3(0, 0, 0);
@@ -41,7 +53,18 @@ function setup() {
     methods.comets.startCreation(scene);
 
     var controls = new function () {
-      this.cameraY = camera.position.y;
+        this.cameraY = camera.position.y;
+        this.scanlinesCount = 256;
+        this.grayscale = false;
+        this.scanlinesIntensity = 0.6;
+        this.noiseIntensity = 0.8;
+
+        this.updateEffectFilm = function () {
+            effectFilm.uniforms.grayscale.value = controls.grayscale;
+            effectFilm.uniforms.nIntensity.value = controls.noiseIntensity;
+            effectFilm.uniforms.sIntensity.value = controls.scanlinesIntensity;
+            effectFilm.uniforms.sCount.value = controls.scanlinesCount;
+        };
     };
 
     var gui = new dat.GUI();
@@ -49,8 +72,16 @@ function setup() {
     gui.add(controls, 'cameraY', camera.position.y - 500, camera.position.y + 500).onChange(function (e) {
       camera.position.y = e;
     });
+    guiScale = gui.addFolder('Camera effect');
+
+    guiScale.add(controls, "scanlinesIntensity", 0, 1).onChange(controls.updateEffectFilm);
+    guiScale.add(controls, "noiseIntensity", 0, 3).onChange(controls.updateEffectFilm);
+    guiScale.add(controls, "grayscale").onChange(controls.updateEffectFilm);
+    guiScale.add(controls, "scanlinesCount", 0, 2048).step(1).onChange(controls.updateEffectFilm);
   
     function render () {
+
+        var delta = clock.getDelta();
 
         stats.update();
         planetGroup.children.forEach(methods.planet.update);
@@ -58,11 +89,11 @@ function setup() {
         methods.camera.update(camera, scene);
         methods.comets.update(scene);
 
-        orbitControl.update(clock.getDelta());
-
+        orbitControl.update(delta);
 
         requestAnimationFrame(render);
-        renderer.render(scene, camera);
+        composer.render(delta);
+        // renderer.render(scene, camera);
     }
 
     document.getElementById("webgl").appendChild(renderer.domElement);
@@ -338,8 +369,8 @@ var methods = {
         cameraStep : 0,
         update : function (camera, scene) {
             this.cameraStep += 0.0002;
-            // camera.position.x = Math.cos(this.cameraStep) * -250;
-            // camera.position.z = Math.sin(this.cameraStep) * 200;
+            camera.position.x = Math.cos(this.cameraStep) * -250;
+            camera.position.z = Math.sin(this.cameraStep) * 200;
             camera.lookAt(scene.position);
 
             // orbitControl.target.x = camera.position.x;

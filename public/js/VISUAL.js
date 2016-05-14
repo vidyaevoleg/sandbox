@@ -163,10 +163,6 @@ var methods = {
 	}
 }
 
-AudioHandler.init();
-AudioHandler.onUseSample();
-// нужно вот это добавить для update() -> ControlsHandler
-
 var AudioHandler = function() {
 
     var waveData = []; //waveform - from 0 - 1 . no sound is 0.5. Array [binCount]
@@ -560,3 +556,7 @@ var AudioHandler = function() {
     };
 
 }();
+
+AudioHandler.init();
+AudioHandler.onUseSample();
+// нужно вот это добавить для update() -> ControlsHandler

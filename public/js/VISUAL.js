@@ -163,6 +163,10 @@ var methods = {
 	}
 }
 
+AudioHandler.init();
+AudioHandler.onUseSample();
+// нужно вот это добавить для update() -> ControlsHandler
+
 var AudioHandler = function() {
 
     var waveData = []; //waveform - from 0 - 1 . no sound is 0.5. Array [binCount]
@@ -173,7 +177,7 @@ var AudioHandler = function() {
     var levelHistory = []; //last 256 ave norm levels
     var bpmStart; 
 
-    var sampleAudioURL = "../res/mp3/Cissy_Strut_Edit.mp3";
+    var sampleAudioURL = "assets/audio/sound.mp3";
     var BEAT_HOLD_TIME = 40; //num of frames to hold a beat
     var BEAT_DECAY_RATE = 0.98;
     var BEAT_MIN = 0.15; //a volume less than this is no beat
@@ -217,7 +221,7 @@ var AudioHandler = function() {
     function init() {
 
         //EVENT HANDLERS
-        events.on("update", update);
+        // events.on("update", update);
 
         audioContext = new window.webkitAudioContext();
         analyser = audioContext.createAnalyser();
@@ -269,7 +273,7 @@ var AudioHandler = function() {
         
         // Load asynchronously
         var request = new XMLHttpRequest();
-        request.open("GET", ControlsHandler.audioParams.sampleURL, true);
+        request.open("GET", sampleAudioURL, true);
         request.responseType = "arraybuffer";
 
         request.onload = function() {
@@ -326,12 +330,12 @@ var AudioHandler = function() {
     }
     
     function onUseSample(){
-        if (ControlsHandler.audioParams.useSample){
+        // if (ControlsHandler.audioParams.useSample){
             loadSampleAudio();          
-            ControlsHandler.audioParams.useMic = false;
-        }else{
-            stopSound();
-        }
+            // ControlsHandler.audioParams.useMic = false;
+        // }else{
+            // stopSound();
+        // }
     }
     //load dropped MP3
     function onMP3Drop(evt) {
@@ -411,7 +415,7 @@ var AudioHandler = function() {
     function onBeat(){
         gotBeat = true;
         if (ControlsHandler.audioParams.bpmMode) return;
-        events.emit("onBeat");
+        // events.emit("onBeat");
     }
 
 

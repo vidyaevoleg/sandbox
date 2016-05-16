@@ -1,25 +1,24 @@
-var audio_reader;
+// var audio_reader;
 
-$('#dropzone').filedrop({
-    drop: function() {
-       	var file = event.dataTransfer.files[0];
-        var reader = new FileReader();
-        reader.onload = function(fileEvent) {
-        	(file);       
-            var data = fileEvent.target.result;
-            console.log(data)
-        };
-        reader.readAsArrayBuffer(file)
-    },
-    maxfilesize: 20,
-    beforeSend: function(file, i, done) {
-        var audio_data = event.target.result;
-        audio_reader = new AudioReader();
-        audio_reader.init();
-        audio_reader.decode(audio_data);
-        return false
-    }        
-})
+// $('#dropzone').filedrop({
+//     drop: function() {
+//        	var file = event.dataTransfer.files[0];
+//         var reader = new FileReader();
+//         reader.onload = function(fileEvent) {    
+//             var data = fileEvent.target.result;
+//         };
+//         reader.readAsArrayBuffer(file);
+//     },
+//     maxfilesize: 20,
+//     beforeSend: function(file, i, done) {
+//         debugger;
+//         var audio_data = event.target.result;
+//         audio_reader = new AudioReader();
+//         audio_reader.init();
+//         audio_reader.decode(audio_data);
+//         return false;
+//     }        
+// })
 
 var AudioReader = function () {
 	var 
@@ -85,6 +84,23 @@ var AudioReader = function () {
     	source.connect(analyser);			 
    	}
 
+    function loadFile(url) {
+        var request = new XMLHttpRequest();
+        request.open("GET", url, true);
+        request.responseType = "arraybuffer";
+
+        request.onload = function() {
+            // decode(request.response);
+            audioContext.decodeAudioData(request.response, function(buffer) {
+                audioBuffer = buffer;
+                play();
+            }, function(e) {
+                console.log(e);
+            });
+        };
+        request.send();
+    }
+
 	function base64ToArrayBuffer(base64) {
 	    var binary_string =  window.atob(base64.split(',')[1]);
 	    var len = binary_string.length;
@@ -95,17 +111,17 @@ var AudioReader = function () {
 	    return bytes.buffer;
 	}
 
-   	function decode (audio_data) {
+   	function decode(audio_data) {
    		var buffer_audio_data = base64ToArrayBuffer(audio_data);
         if(audioContext.decodeAudioData) {
 			audioContext.decodeAudioData(buffer_audio_data, function(buffer) {
 			    audioBuffer = buffer;
-			    play()
+			    play();
 			}, function(e) {
-			  console.log(e);
+                console.log(e);
 			});
         } else {
-            audioBuffer = audioContext.createBuffer(buffer_audio_data, false );
+            audioBuffer = audioContext.createBuffer(buffer_audio_data, false);
         	play.bind(this);
         }
    	}
@@ -118,7 +134,7 @@ var AudioReader = function () {
         update();
    	}
 
-    function stop(){
+    function stop() {
         isPlayingAudio = false;
         if (source) {
             source.stop(0);
@@ -167,7 +183,7 @@ var AudioReader = function () {
             }
             isBeat = false;
         }
-        console.log(currentData())
+        // console.log(currentData())
 	    window.requestAnimationFrame(update);
     }
 
@@ -184,7 +200,8 @@ var AudioReader = function () {
     	init : init, 
     	decode : decode,
     	update : update,
-    	data : currentData
+    	data : currentData,
+        loadFile : loadFile
     }
 
 }

@@ -40,6 +40,7 @@ var AudioReader = function () {
 	    binCount, // делитель 512
 	    levelBins,
 	    isPlayingAudio = false,
+	    isBeat = false,
 	    source,
 	    buffer,
 	    audioBuffer,
@@ -171,3 +172,7 @@ var AudioReader = function () {
     }
 
 }
+
+setTimeout(function () {
+	debugger
+}, 5000)

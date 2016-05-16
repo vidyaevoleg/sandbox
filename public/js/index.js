@@ -1,4 +1,4 @@
-var planetGroup, camera, controls;
+var planetGroup, camera, controls, audio_reader;
 function setup() {
 
     var scene = new THREE.Scene();
@@ -51,6 +51,7 @@ function setup() {
 
     methods.particles.create(scene);
     methods.comets.startCreation(scene);
+    methods.getAudio("assets/audio/sound.mp3");
 
     var controls = new function () {
         this.cameraY = camera.position.y;
@@ -82,6 +83,12 @@ function setup() {
     function render () {
 
         var delta = clock.getDelta();
+
+        var data = audio_reader.data();
+
+        console.log(data);
+
+        debugger; // ТУТ НЕТ
 
         stats.update();
         planetGroup.children.forEach(methods.planet.update);
@@ -116,6 +123,11 @@ function setup() {
 }
 
 var methods = {
+    getAudio : function (src) {
+        audio_reader = new AudioReader();
+        audio_reader.init();
+        audio_reader.loadFile(src);
+    },
     sun : {
         create : function (planet, scene) {
             geometry = new THREE.SphereGeometry(planet.size, 40, 40);

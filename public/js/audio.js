@@ -1,23 +1,23 @@
-var audio_reader;
+// var audio_reader;
 
-$('#dropzone').filedrop({
-    drop: function() {
-       	var file = event.dataTransfer.files[0];
-        var reader = new FileReader();
-        reader.onload = function(fileEvent) {
-            var data = fileEvent.target.result;
-            console.log(data)
-        };
-        reader.readAsArrayBuffer(file)
-    },
-    maxfilesize: 20,
-    beforeSend: function(file, i, done) {
-        var audio_data = event.target.result;
-        audio_reader = new AudioReader();
-        audio_reader.init(audio_data);
-        return false
-    }        
-})
+// $('#dropzone').filedrop({
+//     drop: function() {
+//        	var file = event.dataTransfer.files[0];
+//         var reader = new FileReader();
+//         reader.onload = function(fileEvent) {
+//             var data = fileEvent.target.result;
+//             console.log(data)
+//         };
+//         reader.readAsArrayBuffer(file)
+//     },
+//     maxfilesize: 20,
+//     beforeSend: function(file, i, done) {
+//         var audio_data = event.target.result;
+//         audio_reader = new AudioReader();
+//         audio_reader.init(audio_data);
+//         return false
+//     }        
+// })
 
 
 // читаем 
@@ -67,10 +67,27 @@ var AudioReader = function () {
 
        	source = audioContext.createBufferSource();
     	source.connect(analyser);
-    	decode(audio_data);		 
+    	// decode(audio_data);		 
    	}
 
-	function _base64ToArrayBuffer(base64) {
+    function loadFile(url) {
+        var request = new XMLHttpRequest();
+        request.open("GET", url, true);
+        request.responseType = "arraybuffer";
+
+        request.onload = function() {
+            // decode(request.response);
+            audioContext.decodeAudioData(request.response, function(buffer) {
+                audioBuffer = buffer;
+                play();
+            }, function(e) {
+                console.log(e);
+            });
+        };
+        request.send();
+    }
+
+    function base64ToArrayBuffer(base64) {
 	    var binary_string =  window.atob(base64.split(',')[1]);
 	    var len = binary_string.length;
 	    var bytes = new Uint8Array( len );
@@ -80,18 +97,18 @@ var AudioReader = function () {
 	    return bytes.buffer;
 	}
 
-   	function decode (audio_data) {
-   		var buffer_audio_data = _base64ToArrayBuffer(audio_data);
+    function decode(audio_data) {
+        var buffer_audio_data = base64ToArrayBuffer(audio_data);
         if(audioContext.decodeAudioData) {
 			audioContext.decodeAudioData(buffer_audio_data, function(buffer) {
 			    audioBuffer = buffer;
-			    play()
+			    play();
 			}, function(e) {
-			  console.log(e);
+                console.log(e);
 			});
         } else {
             audioBuffer = audioContext.createBuffer(buffer_audio_data, false );
-        	play();
+            play();
         }
    	}
 
@@ -103,7 +120,7 @@ var AudioReader = function () {
         update();
    	}
 
-    function stop(){
+    function stop() {
         isPlayingAudio = false;
         if (source) {
             source.stop(0);
@@ -151,24 +168,27 @@ var AudioReader = function () {
             }
             isBeat = false;
         }
-
-        console.log(currentData())
+        debugger; // ТУТ ЕСТЬ
+        console.log(currentData());
 	    window.requestAnimationFrame(update);
     }
 
     function currentData() {
+        debugger; // ТУТ НЕТ
     	return {
     		levels : levelsData, // гистограмма
     		waveData : waveData, // волна
-    		beat : isBeat, // бит ли сейчас ? 
+    		// beat : isBeat, // бит ли сейчас ? 
     		volume : level // громкость музычки
     	}
     }
 
     return {
     	init : init, 
-    	data : currentData,
-    	stop : stop
+        decode : decode,
+        update : update,
+        data : currentData,
+        loadFile : loadFile
     }
 
 }

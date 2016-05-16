@@ -1,28 +1,28 @@
-// var audio_reader;
+var audio_reader;
 
-// $('#dropzone').filedrop({
-//     drop: function() {
-//        	var file = event.dataTransfer.files[0];
-//         var reader = new FileReader();
-//         reader.onload = function(fileEvent) {
-//             var data = fileEvent.target.result;
-//             console.log(data)
-//         };
-//         reader.readAsArrayBuffer(file)
-//     },
-//     maxfilesize: 20,
-//     beforeSend: function(file, i, done) {
-//         var audio_data = event.target.result;
-//         audio_reader = new AudioReader();
-//         audio_reader.init(audio_data);
-//         return false
-//     }        
-// })
+$('#dropzone').filedrop({
+    drop: function() {
+       	var file = event.dataTransfer.files[0];
+        var reader = new FileReader();
+        reader.onload = function(fileEvent) {
+            var data = fileEvent.target.result;
+            console.log(data)
+        };
+        reader.readAsArrayBuffer(file)
+    },
+    maxfilesize: 20,
+    beforeSend: function(file, i, done) {
+        var audio_data = event.target.result;
+        audio_reader = new AudioReader();
+        audio_reader.init(audio_data);
+        return false
+    }        
+})
 
 
 // читаем 
 
-var AudioReader = function () {
+function AudioReader () {
 	var 
 		waveData = [],
 		levelsData = [],
@@ -47,7 +47,7 @@ var AudioReader = function () {
 	    audioContext,
 	    analyser;
 
-   	function init(audio_data) {
+   	this.init = function (audio_data) {
         audioContext = new AudioContext();
         analyser = audioContext.createAnalyser();
         analyser.smoothingTimeConstant = 0.8;
@@ -67,10 +67,10 @@ var AudioReader = function () {
 
        	source = audioContext.createBufferSource();
     	source.connect(analyser);
-    	// decode(audio_data);		 
+    	decode(audio_data);		 
    	}
 
-    function loadFile(url) {
+    this.loadFile = function (url) {
         var request = new XMLHttpRequest();
         request.open("GET", url, true);
         request.responseType = "arraybuffer";
@@ -85,6 +85,30 @@ var AudioReader = function () {
             });
         };
         request.send();
+    }
+
+    this.stop = function () {
+        isPlayingAudio = false;
+        if (source) {
+            source.stop(0);
+            source.disconnect();
+        }
+    }
+
+    this.getData = function () {
+        return {
+            levels : levelsData, // гистограмма
+            waveData : waveData, // волна
+            beat : isBeat, // бит ли сейчас ? 
+            volume : level // громкость музычки
+        }
+    }
+    function play() {
+        source.buffer = audioBuffer;
+        source.loop = true;
+        source.start(0.0);
+        isPlayingAudio = true;
+        update();
     }
 
     function base64ToArrayBuffer(base64) {
@@ -111,22 +135,6 @@ var AudioReader = function () {
             play();
         }
    	}
-
-   	function play() {
-        source.buffer = audioBuffer;
-        source.loop = true;
-        source.start(0.0);
-        isPlayingAudio = true;
-        update();
-   	}
-
-    function stop() {
-        isPlayingAudio = false;
-        if (source) {
-            source.stop(0);
-            source.disconnect();
-        }
-    }
 
     function update() {
     	if (!isPlayingAudio) return ;
@@ -168,28 +176,9 @@ var AudioReader = function () {
             }
             isBeat = false;
         }
-        debugger; // ТУТ ЕСТЬ
-        console.log(currentData());
 	    window.requestAnimationFrame(update);
     }
 
-    function currentData() {
-        debugger; // ТУТ НЕТ
-    	return {
-    		levels : levelsData, // гистограмма
-    		waveData : waveData, // волна
-    		// beat : isBeat, // бит ли сейчас ? 
-    		volume : level // громкость музычки
-    	}
-    }
-
-    return {
-    	init : init, 
-        decode : decode,
-        update : update,
-        data : currentData,
-        loadFile : loadFile
-    }
 
 }
 

@@ -88,6 +88,8 @@ function setup() {
 
         console.log(data);
 
+        debugger; // ТУТ НЕТ
+
         stats.update();
         planetGroup.children.forEach(methods.planet.update);
         methods.sun.update(clock);

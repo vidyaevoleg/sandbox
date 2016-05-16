@@ -5,7 +5,6 @@ $('#dropzone').filedrop({
        	var file = event.dataTransfer.files[0];
         var reader = new FileReader();
         reader.onload = function(fileEvent) {
-        	(file);       
             var data = fileEvent.target.result;
             console.log(data)
         };
@@ -15,63 +14,47 @@ $('#dropzone').filedrop({
     beforeSend: function(file, i, done) {
         var audio_data = event.target.result;
         audio_reader = new AudioReader();
-        audio_reader.init();
-        audio_reader.decode(audio_data);
+        audio_reader.init(audio_data);
         return false
     }        
 })
 
+
+// читаем 
+
 var AudioReader = function () {
 	var 
-		self = this,
 		waveData = [],
 		levelsData = [],
 		level = [],
-		bmpTime = 0,
-		ratedBPMTime = 550,
 		levelHistory = [],
-		bmpStart,
-		audio_url,
 
-		BEAT_HOLD_TIME = 40,
-		BEAT_DECAY_RATE = 0.98,
 		BEAT_MIN = 0.15,
 
-    	count = 0,
-    	msecsFirst = 0,
-    	msecsPrevious = 0,
-    	msecsAvg = 633, //time between beats (msec)	
-
-		timer,
-    	gotBeat = false,
     	beatCutOff = 0,
     	beatTime = 0,
 
-
-	    freqByteData, //bars - bar data is from 0 - 256 in 512 bins. no sound is 0;
-	    timeByteData, //waveform - waveform data is from 0-256 for 512 bins. no sound is 128.
-	    levelsCount = 16, //should be factor of 512
-	    binCount, //512
+	    freqByteData,
+	    timeByteData,
+	    levelsCount = 16, // число баров в гистограмме ()
+	    binCount, // делитель 512
 	    levelBins,
 	    isPlayingAudio = false,
-	    isBit = false,
 	    source,
 	    buffer,
 	    audioBuffer,
-	    dropArea,
 	    audioContext,
 	    analyser;
 
-   	function init() {
-		// здесь создаем аналайзер и прочитай объекты для аналиzа
+   	function init(audio_data) {
         audioContext = new AudioContext();
         analyser = audioContext.createAnalyser();
-        analyser.smoothingTimeConstant = 0.8; //0<->1. 0 is no time smoothing
+        analyser.smoothingTimeConstant = 0.8;
         analyser.fftSize = 1024;
         analyser.connect(audioContext.destination);
-        binCount = analyser.frequencyBinCount; // = 512
 
-        levelBins = Math.floor(binCount / levelsCount); //number of bins in each level
+        binCount = analyser.frequencyBinCount;
+        levelBins = Math.floor(binCount / levelsCount);
 
         freqByteData = new Uint8Array(binCount); 
         timeByteData = new Uint8Array(binCount);
@@ -82,10 +65,11 @@ var AudioReader = function () {
         }
 
        	source = audioContext.createBufferSource();
-    	source.connect(analyser);			 
+    	source.connect(analyser);
+    	decode(audio_data);		 
    	}
 
-	function base64ToArrayBuffer(base64) {
+	function _base64ToArrayBuffer(base64) {
 	    var binary_string =  window.atob(base64.split(',')[1]);
 	    var len = binary_string.length;
 	    var bytes = new Uint8Array( len );
@@ -96,7 +80,7 @@ var AudioReader = function () {
 	}
 
    	function decode (audio_data) {
-   		var buffer_audio_data = base64ToArrayBuffer(audio_data);
+   		var buffer_audio_data = _base64ToArrayBuffer(audio_data);
         if(audioContext.decodeAudioData) {
 			audioContext.decodeAudioData(buffer_audio_data, function(buffer) {
 			    audioBuffer = buffer;
@@ -106,7 +90,7 @@ var AudioReader = function () {
 			});
         } else {
             audioBuffer = audioContext.createBuffer(buffer_audio_data, false );
-        	play.bind(this);
+        	play();
         }
    	}
 
@@ -143,17 +127,16 @@ var AudioReader = function () {
             levelsData[i] = sum / levelBins/256;
 	    }	
 
-        //GET AVG LEVEL
         var sum = 0;
         for(var j = 0; j < levelsCount; j++) {
             sum += levelsData[j];
         }
         
         level = sum / levelsCount;
-
         levelHistory.push(level);
         levelHistory.shift(1);
-        //BEAT DETECTION
+
+        // определяем бит
         if (level  > beatCutOff && level > BEAT_MIN){
             isBeat = true;
             beatCutOff = level *1.1;
@@ -167,24 +150,24 @@ var AudioReader = function () {
             }
             isBeat = false;
         }
+
         console.log(currentData())
 	    window.requestAnimationFrame(update);
     }
 
     function currentData() {
     	return {
-    		levelsData : levelsData,
-    		levelHistory : levelHistory,
-    		isBeat : isBeat,
-    		level : level
+    		levels : levelsData, // гистограмма
+    		waveData : waveData, // волна
+    		beat : isBeat, // бит ли сейчас ? 
+    		volume : level // громкость музычки
     	}
     }
 
     return {
     	init : init, 
-    	decode : decode,
-    	update : update,
-    	data : currentData
+    	data : currentData,
+    	stop : stop
     }
 
 }

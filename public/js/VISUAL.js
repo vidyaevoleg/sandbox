@@ -9,14 +9,10 @@ function init () {
     renderer = new THREE.WebGLRenderer();
     renderer.setClearColor(new THREE.Color(0x000));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    // renderer.shadowMapEnabled = true;
-    // renderer.shadowMapSoft = true;
+    renderer.shadowMapEnabled = true;
+    renderer.shadowMapSoft = true;
 
-    camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.x = 100;
-    camera.position.y = 40;
-    camera.position.z = 40;
-    camera.lookAt(scene.position);
+    methods.camera.create();
 
     spotLight = new THREE.SpotLight(0xffffff);
     spotLight.position.set(50, 100, 80);
@@ -24,7 +20,7 @@ function init () {
     scene.add(spotLight); 
 
     var renderPass = new THREE.RenderPass(scene, camera);
-    var effectFilm = new THREE.FilmPass(1.3, 0.7, 256, false);
+    var effectFilm = new THREE.FilmPass(0.3, 0.7, 256, false);
     effectFilm.renderToScreen = true;
 
     var effectGlitch = new THREE.GlitchPass(64);
@@ -58,6 +54,7 @@ function init () {
 	    var delta = clock.getDelta();
 
 	    methods.figures.render();
+        methods.camera.render();
 
 	    requestAnimationFrame(render);
 	    // renderer.render(scene, camera);
@@ -69,6 +66,18 @@ function init () {
 }
 
 var methods = {
+    camera : {
+        create : function () {
+            camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.x = 100;
+            camera.position.y = 0;
+            camera.position.z = 0;
+            camera.lookAt(scene.position);
+        },
+        render : function () {
+            // camera.position.x += 0.2;
+        }
+    },
 	figures : {
 		data : {
 			objects : null,
@@ -79,24 +88,38 @@ var methods = {
 			scene.add(this.data.objects);
 
 			this.cube.create();
+            this.plane.create();
 		},
 		render : function () {
 			var self = this;
 			this.data.objects.children.forEach(function (figure) {
 				self[figure.type].render(figure);
 
-				for (var i in self.data.transitionFunctions) {
-					self.data.transitionFunctions[i].fn();
-				}
-			});
+            });
+			for (var i in self.data.transitionFunctions) {
+				self.data.transitionFunctions[i].fn();
+			}
 		},
-		cube : {
-			create : function () {
-				var cubeGeometry = new THREE.BoxGeometry(20, 20, 20);
-		        var cubeMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
-		        var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-		        cube.type = 'cube';
-		        methods.figures.data.objects.add(cube);
+        plane : {
+            create : function () {
+                var geom = new THREE.BoxGeometry(70, 70, 20);
+                var mat = new THREE.MeshLambertMaterial({ color : 0xff0000});
+                var plane = new THREE.Mesh(geom, mat);
+                plane.type = 'plane';
+                plane.rotation.y = -1/2 * Math.PI;
+                methods.figures.data.objects.add(plane);
+            },
+            render : function () {
+                
+            }
+        },
+        cube : {
+            create : function () {
+                var cubeGeometry = new THREE.BoxGeometry(20, 20, 20);
+                var cubeMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
+                var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                cube.type = 'cube';
+                methods.figures.data.objects.add(cube);
 
 		        this.scale(cube, 1.4, 1, 0.4, 0.2, 1);
 			},
@@ -145,9 +168,8 @@ var methods = {
 							'xyz'.split('').map(function (coord) {
 								figure.scale[coord] = self.minScale;
 							});
-							console.log('function removed');
 							// для теста запускаем сразу заново после удаления
-							methods.figures.cube.scale(figure, 2, 1.02, 0.4, 0.2);
+							methods.figures.cube.scale(figure, 2, 1, 0.4, 0.2);
 						}
 					}
 				} 

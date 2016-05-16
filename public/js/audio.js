@@ -1,23 +1,23 @@
-var audio_reader;
+// var audio_reader;
 
-$('#dropzone').filedrop({
-    drop: function() {
-       	var file = event.dataTransfer.files[0];
-        var reader = new FileReader();
-        reader.onload = function(fileEvent) {
-            var data = fileEvent.target.result;
-            console.log(data)
-        };
-        reader.readAsArrayBuffer(file)
-    },
-    maxfilesize: 20,
-    beforeSend: function(file, i, done) {
-        var audio_data = event.target.result;
-        audio_reader = new AudioReader();
-        audio_reader.init(audio_data);
-        return false
-    }        
-})
+// $('#dropzone').filedrop({
+//     drop: function() {
+//        	var file = event.dataTransfer.files[0];
+//         var reader = new FileReader();
+//         reader.onload = function(fileEvent) {
+//             var data = fileEvent.target.result;
+//             console.log(data)
+//         };
+//         reader.readAsArrayBuffer(file)
+//     },
+//     maxfilesize: 20,
+//     beforeSend: function(file, i, done) {
+//         var audio_data = event.target.result;
+//         audio_reader = new AudioReader();
+//         audio_reader.init(audio_data);
+//         return false
+//     }        
+// })
 
 
 // читаем 
@@ -103,6 +103,12 @@ function AudioReader () {
             volume : level // громкость музычки
         }
     }
+    
+    this.isPlaying = function () {
+        return isPlayingAudio;
+    }
+
+
     function play() {
         source.buffer = audioBuffer;
         source.loop = true;
@@ -182,6 +188,3 @@ function AudioReader () {
 
 }
 
-setTimeout(function () {
-	debugger
-}, 5000)

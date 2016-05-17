@@ -29,7 +29,7 @@ function AudioReader () {
 		level = [],
 		levelHistory = [],
 
-		BEAT_MIN = 0.06,
+		BEAT_MIN = 0.20,
 
     	beatCutOff = 0,
     	beatTime = 0,
@@ -99,16 +99,12 @@ function AudioReader () {
         return {
             levels : levelsData, // гистограмма
             waveData : waveData, // волна
+            isPlaying : isPlayingAudio,
             isBeat : isBeat, // бит ли сейчас ? 
             volume : level // громкость музычки
         }
     }
     
-    this.isPlaying = function () {
-        return isPlayingAudio;
-    }
-
-
     function play() {
         source.buffer = audioBuffer;
         source.loop = true;

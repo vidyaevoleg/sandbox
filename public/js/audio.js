@@ -29,7 +29,7 @@ function AudioReader () {
 		level = [],
 		levelHistory = [],
 
-		BEAT_MIN = 0.15,
+		BEAT_MIN = 0.06,
 
     	beatCutOff = 0,
     	beatTime = 0,
@@ -67,7 +67,7 @@ function AudioReader () {
 
        	source = audioContext.createBufferSource();
     	source.connect(analyser);
-    	decode(audio_data);		 
+    	// decode(audio_data);		 
    	}
 
     this.loadFile = function (url) {
@@ -99,7 +99,7 @@ function AudioReader () {
         return {
             levels : levelsData, // гистограмма
             waveData : waveData, // волна
-            beat : isBeat, // бит ли сейчас ? 
+            isBeat : isBeat, // бит ли сейчас ? 
             volume : level // громкость музычки
         }
     }
@@ -169,7 +169,7 @@ function AudioReader () {
         levelHistory.shift(1);
 
         // определяем бит
-        if (level  > beatCutOff && level > BEAT_MIN){
+        if (level  > beatCutOff && level > BEAT_MIN) {
             isBeat = true;
             beatCutOff = level *1.1;
             beatTime = 0;

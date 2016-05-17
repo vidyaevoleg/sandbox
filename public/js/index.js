@@ -1,23 +1,26 @@
-var planetGroup, camera, controls, audio_reader;
+var planetGroup, 
+    camera, controls, audio_reader, customUniforms, effectFilm, renderer, scene;
 function setup() {
 
-    var scene = new THREE.Scene();
+    scene = new THREE.Scene();
     var clock = new THREE.Clock();
     var stats = initStats();
     camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.x = 350;
-    camera.position.y = 300;
+    camera.position.y = 120;
     camera.position.z = 200;
     camera.lookAt(scene.position);
 
-    var renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer();
     renderer.setClearColor(new THREE.Color(0x000));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMapEnabled = true;
     renderer.shadowMapSoft = true;
 
     var renderPass = new THREE.RenderPass(scene, camera);
-    var effectFilm = new THREE.FilmPass(1.3, 0.7, 256, false);
+    // effectFilm = new THREE.FilmPass(0.6, 0.1, 1600, false);
+    // effectFilm = new THREE.FilmPass(1.3, 0.7, 256, false);
+    effectFilm = new THREE.FilmPass(1.2, 0.3, 256, false);
     effectFilm.renderToScreen = true;
 
     var effectGlitch = new THREE.GlitchPass(64);
@@ -51,7 +54,10 @@ function setup() {
 
     methods.particles.create(scene);
     methods.comets.startCreation(scene);
-    methods.getAudio("assets/audio/sound.mp3");
+    methods.audio.get("assets/audio/CHVRCHES - Clearest Blue (Gryffin Remix).mp3"); // BEAT_MIN = 0.7;
+    // methods.audio.get("assets/audio/kuroiumi - sanremo.mp3");
+    // methods.audio.get("assets/audio/screweed mramora - stars shine.mp3");
+
 
     var controls = new function () {
         this.cameraY = camera.position.y;
@@ -59,6 +65,10 @@ function setup() {
         this.grayscale = false;
         this.scanlinesIntensity = 0.6;
         this.noiseIntensity = 0.8;
+
+        // плавное изменение опасити звезд
+        this.direction_steps_count = methods.audio.direction_steps_count;
+        this.value_by_step = methods.audio.value_by_step;
 
         this.updateEffectFilm = function () {
             effectFilm.uniforms.grayscale.value = controls.grayscale;
@@ -69,6 +79,13 @@ function setup() {
     };
 
     var gui = new dat.GUI();
+
+    gui.add(controls, 'direction_steps_count', methods.audio.direction_steps_count - 10, methods.audio.direction_steps_count + 30).onChange(function (e) {
+        methods.audio.direction_steps_count = e;
+    });
+    gui.add(controls, 'value_by_step', methods.audio.value_by_step - 0.2, methods.audio.value_by_step + 0.2).onChange(function (e) {
+        methods.audio.value_by_step = e;
+    });
 
     gui.add(controls, 'cameraY', camera.position.y - 500, camera.position.y + 500).onChange(function (e) {
       camera.position.y = e;
@@ -84,11 +101,9 @@ function setup() {
 
         var delta = clock.getDelta();
 
-        var data = audio_reader.data();
+        var data = audio_reader.getData();
 
-        console.log(data);
-
-        debugger; // ТУТ НЕТ
+        methods.audio.update(data);
 
         stats.update();
         planetGroup.children.forEach(methods.planet.update);
@@ -123,39 +138,90 @@ function setup() {
 }
 
 var methods = {
-    getAudio : function (src) {
-        audio_reader = new AudioReader();
-        audio_reader.init();
-        audio_reader.loadFile(src);
+    audio : {
+        last_values : null,
+        direction_steps_count : 8,
+        current_step : 0,
+        stayBrighter : true,
+        value_by_step : 0.07,
+        real_opacity : 0.3,
+        changing : false,
+        get : function (src) {
+            audio_reader = new AudioReader();
+            audio_reader.init();
+            audio_reader.loadFile(src);
+        },
+        update : function (data) {
+
+
+            if (this.changing && this.current_step < this.direction_steps_count) {
+                this.real_opacity += (this.current_step < this.direction_steps_count/2 ? 1 : -1) * this.value_by_step;
+                // methods.particles.cloud.position.x += (Math.random() > 0.5 ? 1 : -1) * 1.5;
+                // methods.particles.cloud.position.y -= (Math.random() > 0.5 ? 1 : -1) * 1.5;
+                // methods.particles.cloud.scale *= (Math.random() > 0.5 ? 1 : -1) * 1.05;
+
+            } else {
+                this.changing = false;
+                this.current_step = -1;
+            }
+
+            this.current_step++;
+
+            if (data.isBeat) {
+
+                this.changing = true;
+
+                var top = Math.random() > 0.5 ? 1 : -1;
+                methods.camera.cameraStep += top * 0.03;
+                camera.position.y += top * 10;
+
+                // methods.particles.cloud.position.x += top * 5;
+                // methods.particles.cloud.position.y -= top * 5;
+                // renderer.render(scene, camera);
+
+                // methods.particles.cloud.material.opacity = 0.8; // быстрое
+            } else {
+                // methods.particles.cloud.material.opacity = this.real_opacity; // быстрое
+            }
+
+            if (this.changing) {
+                methods.particles.cloud.material.opacity = this.real_opacity;
+            }
+            
+        }
     },
     sun : {
         create : function (planet, scene) {
             geometry = new THREE.SphereGeometry(planet.size, 40, 40);
             var lavaTexture = new THREE.ImageUtils.loadTexture( 'assets/images/sun.jpg');
+            // var lavaTexture = new THREE.ImageUtils.loadTexture( 'assets/images/lava.jpg');
             lavaTexture.wrapS = lavaTexture.wrapT = THREE.RepeatWrapping; 
 
             var baseSpeed = 0.01;
             var repeatS = repeatT = 6.0;
             
-            var noiseTexture = new THREE.ImageUtils.loadTexture( 'assets/images/cloud.png' );
+            // var noiseTexture = new THREE.ImageUtils.loadTexture( 'assets/images/sun.jpg' );
+            // var noiseTexture = new THREE.ImageUtils.loadTexture( 'assets/images/cloud.png' );
+            var noiseTexture = new THREE.ImageUtils.loadTexture( 'assets/images/lava.jpg' );
             noiseTexture.wrapS = noiseTexture.wrapT = THREE.RepeatWrapping; 
-            var noiseScale = 0.2;
+            var noiseScale = 1;
             
             // texture to additively blend with base image texture
             var blendTexture = new THREE.ImageUtils.loadTexture( 'assets/images/sun.jpg' );
+            // var blendTexture = new THREE.ImageUtils.loadTexture( 'assets/images/lava.jpg' );
             blendTexture.wrapS = blendTexture.wrapT = THREE.RepeatWrapping; 
             // multiplier for distortion speed 
-            var blendSpeed = 0.01;
+            var blendSpeed = 0.1;
             // adjust lightness/darkness of blended texture
-            var blendOffset = 0.01;
+            var blendOffset = 0.1;
 
             // texture to determine normal displacement
             var bumpTexture = noiseTexture;
             bumpTexture.wrapS = bumpTexture.wrapT = THREE.RepeatWrapping; 
             // multiplier for distortion speed      
-            var bumpSpeed = 0.01;
+            var bumpSpeed = 1;
             // magnitude of normal displacement
-            var bumpScale = 2.0;
+            var bumpScale = 8.0;
             
             customUniforms = {
                 baseTexture:    { type: "t", value: lavaTexture },
@@ -380,7 +446,7 @@ var methods = {
     camera : {
         cameraStep : 0,
         update : function (camera, scene) {
-            this.cameraStep += 0.0002;
+            this.cameraStep += 0.0004;
             camera.position.x = Math.cos(this.cameraStep) * -250;
             camera.position.z = Math.sin(this.cameraStep) * 200;
             camera.lookAt(scene.position);
@@ -390,11 +456,12 @@ var methods = {
         }
     },
     particles : {
+        cloud : null,
         create : function (group) {
             var geom = new THREE.Geometry(),
                 material = new THREE.PointCloudMaterial({
                 size: 1,
-                opacity : 0.5,
+                opacity : 0.3,
                 transparent : true,
                 color: 'white'
             }),
@@ -410,10 +477,10 @@ var methods = {
                 geom.colors.push(color);
             }
             
-            cloud = new THREE.PointCloud(geom, material);
-            cloud.name = "particles";
+            this.cloud = new THREE.PointCloud(geom, material);
+            this.cloud.name = "particles";
 
-            group.add(cloud);
+            group.add(this.cloud);
         }
     }
 }

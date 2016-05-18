@@ -79,8 +79,8 @@ var methods = {
             camera.position.x = 100;
             camera.position.y = 80;
             camera.position.z = 80;
-            camera.lookAt(methods.spaceship.data.spaceshipModel.position);
-            // camera.lookAt(scene.position);
+            // camera.lookAt(methods.spaceship.data.spaceshipModel.position);
+            camera.lookAt(scene.position);
 
             orbitControl = new THREE.OrbitControls(camera, renderer.domElement);
             orbitControl.target = new THREE.Vector3(0, 0, 0);
@@ -158,32 +158,55 @@ var methods = {
     },
     spaceship : {
         data : {
-            spaceshipModel : new THREE.Group(), // сам обьект
+            // spaceshipModel : new THREE.Group(), // сам обьект
+            spaceshipModel : null, // сам обьект
             spaceshipPivot : new THREE.Group(), // если нао вращать относительно центра
             step : 0,
         },
         create : function () { 
-            var self = this,
-                ship = this.data.spaceshipModel;
 
-            [1,2,3,4,5].forEach(function (number) {
-                var cubeGeometry = new THREE.BoxGeometry(20, 20, 20);
-                var cubeMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
-                var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-                cube.position.x = 20 * number;
+            var self = this;
 
-                ship.add(cube);
-            })
+            var loader = new THREE.OBJLoader();
+            loader.load('assets/textures/freedom7.obj', function (loadedMesh) {
+                var material = new THREE.MeshLambertMaterial({color: 'silver'});
 
-            ship.position.x = 0;
+                loadedMesh.children.forEach(function (child) {
+                    child.material = material;
+                    child.geometry.computeFaceNormals();
+                    child.geometry.computeVertexNormals();
+                });
 
-            var box = new THREE.Box3().setFromObject( ship );
-            box.center( ship.position ); // this re-sets the mesh position
-            ship.position.multiplyScalar( - 1 );
+                self.data.spaceshipModel = loadedMesh;
+                loadedMesh.scale.set(10, 10, 10);
+                loadedMesh.rotation.x = 0.3;
+                loadedMesh.rotation.z = 1/2 * Math.PI;
+                loadedMesh.position.x = 50;
+                scene.add(self.data.spaceshipModel);
+            });
 
-            this.data.spaceshipPivot = new THREE.Group();
-            this.data.spaceshipPivot.add(ship);
-            scene.add(this.data.spaceshipPivot);
+
+            // var self = this,
+            //     ship = this.data.spaceshipModel;
+
+            // [1,2,3,4,5].forEach(function (number) {
+            //     var cubeGeometry = new THREE.BoxGeometry(20, 20, 20);
+            //     var cubeMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
+            //     var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+            //     cube.position.x = 20 * number;
+
+            //     ship.add(cube);
+            // })
+
+            // ship.position.x = 0;
+
+            // var box = new THREE.Box3().setFromObject( ship );
+            // box.center( ship.position ); // this re-sets the mesh position
+            // ship.position.multiplyScalar( - 1 );
+
+            // this.data.spaceshipPivot = new THREE.Group();
+            // this.data.spaceshipPivot.add(ship);
+            // scene.add(this.data.spaceshipPivot);
 
         },
         update : function (audioData) {
@@ -193,10 +216,12 @@ var methods = {
                 multiplier += audioData.volume * 20;
             }
             this.data.step += 0.04 * multiplier;
-            this.data.spaceshipPivot.position.z = Math.cos(this.data.step) * positionMultiplier;
-            this.data.spaceshipPivot.position.y = Math.sin(this.data.step) * positionMultiplier;
-            // this.data.spaceshipPivot.scale.y = multiplier;
-            // this.data.spaceshipPivot.scale.z = multiplier;
+            if (this.data.spaceshipModel) {
+                this.data.spaceshipModel.position.z = Math.cos(this.data.step) * positionMultiplier;
+                this.data.spaceshipModel.position.y = Math.sin(this.data.step) * positionMultiplier;
+            }
+            // this.data.spaceshipPivot.position.z = Math.cos(this.data.step) * positionMultiplier;
+            // this.data.spaceshipPivot.position.y = Math.sin(this.data.step) * positionMultiplier;
         }
     },
     figures : {

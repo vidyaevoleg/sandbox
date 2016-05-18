@@ -19,6 +19,8 @@
 //     }        
 // })
 
+var AudioContext = window.AudioContext || window.webkitAudioContext;
+
 
 // читаем 
 

@@ -149,7 +149,7 @@ var methods = {
             if (audioData.isPlaying) {
                 multiplier += audioData.volume * 5;
                 scaleMiltiplier += audioData.volume * 40;
-                stepMuptiplier += audioData.volume * 3;
+                // stepMuptiplier += audioData.volume * 1.5;
                 opacity += audioData.volume * 1.5;
             }
             var self = this;
@@ -198,7 +198,7 @@ var methods = {
             var multiplier = 1, positionMultiplier = 3;
 
             if (audioData.isPlaying) {
-                multiplier += audioData.volume * 20;
+                // multiplier += audioData.volume * 20;
             }
             this.data.step += 0.04 * multiplier;
             if (this.data.spaceshipModel) {

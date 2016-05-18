@@ -14,11 +14,11 @@ function init () {
     // renderer.shadowMapEnabled = true;
     // renderer.shadowMapSoft = true;
 
-    spotLight = new THREE.SpotLight(0xffffff);
-    spotLight.position.set(50, 100, 80);
-    spotLight.castShadow = true;
+    // spotLight = new THREE.SpotLight(0xffffff);
+    // spotLight.position.set(50, 100, 80);
+    // spotLight.castShadow = true;
 
-    scene.add(spotLight); 
+    // scene.add(spotLight); 
 
     var renderPass = new THREE.RenderPass(scene, camera);
     var effectFilm = new THREE.FilmPass(1.3, 0.7, 256, false);
@@ -84,6 +84,7 @@ var methods = {
 
             orbitControl = new THREE.OrbitControls(camera, renderer.domElement);
             orbitControl.target = new THREE.Vector3(0, 0, 0);
+            // orbitControl.maxDistance = 300;
             orbitControl.maxDistance = 800;
         },
         update : function () {
@@ -120,20 +121,28 @@ var methods = {
             var opts = opts || {
                 position : new THREE.Vector3(
                     -600, 
-                    (Math.random() > 0.5 ? 1 : -1) * ~~(Math.random() * 300), 
+                    (Math.random() > 0.5 ? 1 : -1) * ~~(Math.random() * 300),
                     (Math.random() > 0.5 ? 1 : -1) * ~~(Math.random() * 300)
                 )
             };
             var geometry = new THREE.PlaneBufferGeometry(3, 2);
+            var color = new THREE.Color(0x00ff00);
+            color.setHSL(Math.random() * color.getHSL().h, Math.random() * color.getHSL().s, Math.random() * color.getHSL().l);
             // var meshMaterial = new THREE.MeshLambertMaterial({ color : 'white', side : THREE.DoubleSide, transparent : true});
-            var meshMaterial = new THREE.MeshBasicMaterial({ color : 'white' , side : THREE.DoubleSide, transparent : true });
+            var meshMaterial = new THREE.MeshBasicMaterial({ color : color , side : THREE.DoubleSide, transparent : true });
             plane = new THREE.Mesh(geometry, meshMaterial);
             plane.position.x = opts.position.x;
             plane.position.y = opts.position.y;
             plane.position.z = opts.position.z;
+            plane._type = 'stripe';
+
+            var pointColor = color;
+            var pointLight = new THREE.PointLight(pointColor);
+            pointLight.distance = 400;
+
+            plane.add(pointLight);
 
             this.data.group.add(plane);
-
         },
         update : function (audioData) {
             var multiplier = 1, scaleMiltiplier = 1, stepMuptiplier = 0, opacity = 0.5;
@@ -169,7 +178,7 @@ var methods = {
 
             var loader = new THREE.OBJLoader();
             loader.load('assets/textures/freedom7.obj', function (loadedMesh) {
-                var material = new THREE.MeshLambertMaterial({color: 'silver'});
+                var material = new THREE.MeshLambertMaterial({color: 'white'});
 
                 loadedMesh.children.forEach(function (child) {
                     child.material = material;
@@ -184,30 +193,6 @@ var methods = {
                 loadedMesh.position.x = 50;
                 scene.add(self.data.spaceshipModel);
             });
-
-
-            // var self = this,
-            //     ship = this.data.spaceshipModel;
-
-            // [1,2,3,4,5].forEach(function (number) {
-            //     var cubeGeometry = new THREE.BoxGeometry(20, 20, 20);
-            //     var cubeMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
-            //     var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-            //     cube.position.x = 20 * number;
-
-            //     ship.add(cube);
-            // })
-
-            // ship.position.x = 0;
-
-            // var box = new THREE.Box3().setFromObject( ship );
-            // box.center( ship.position ); // this re-sets the mesh position
-            // ship.position.multiplyScalar( - 1 );
-
-            // this.data.spaceshipPivot = new THREE.Group();
-            // this.data.spaceshipPivot.add(ship);
-            // scene.add(this.data.spaceshipPivot);
-
         },
         update : function (audioData) {
             var multiplier = 1, positionMultiplier = 3;

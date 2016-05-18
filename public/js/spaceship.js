@@ -219,6 +219,7 @@ var methods = {
             if (this.data.spaceshipModel) {
                 this.data.spaceshipModel.position.z = Math.cos(this.data.step) * positionMultiplier;
                 this.data.spaceshipModel.position.y = Math.sin(this.data.step) * positionMultiplier;
+                this.data.spaceshipModel.rotation.x += 1/40 * Math.PI;
             }
             // this.data.spaceshipPivot.position.z = Math.cos(this.data.step) * positionMultiplier;
             // this.data.spaceshipPivot.position.y = Math.sin(this.data.step) * positionMultiplier;

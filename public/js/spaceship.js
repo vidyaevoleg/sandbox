@@ -2,6 +2,38 @@ var scene, clock, renderer, camera, spotLight, audio_reader, orbitControl;
 
 window.onload = init;
 
+var OPTIONS = {
+    spotLight : {
+        is : true,
+        color : 'black',
+        position : new THREE.Vector3(50, 100, 80)
+    },
+    spaceship : {
+        color : 'white',
+        positionStep : 3,
+        scale : 10,
+        meshUrl : 'assets/textures/freedom7.obj'
+    },
+    stripes : {
+        startPosition : {
+            x : -600, 
+            y : 300, 
+            z : 300
+        },
+        width: 3,
+        height: 2,
+        intencity : 1.5, // коээфициент увеличения от volume
+        lightAppearDistance : 200, // свет добавляется полосе на этом расстоянии от шаттла
+        light : {
+            distance : 1000 // насколько далеко светит
+        },
+        positionXForDie : 300, // когда уничтожаем полосы 
+        // коэфы от volume
+        scaleMiltiplier : 40,
+        speedMultiplier : 10
+    }
+}
+
 function init () {
     scene = new THREE.Scene();
     // scene.fog = new THREE.Fog(0xffffff, 0.1, 600);
@@ -14,11 +46,14 @@ function init () {
     // renderer.shadowMapEnabled = true;
     // renderer.shadowMapSoft = true;
 
-    // spotLight = new THREE.SpotLight(0xffffff);
-    // spotLight.position.set(50, 100, 80);
-    // spotLight.castShadow = true;
+    if (OPTIONS.spotLight.is) {
+        spotLight = new THREE.SpotLight(OPTIONS.spotLight.color);
+        spotLight.position.copy(OPTIONS.spotLight.position);
+        console.log(spotLight.position);
+        spotLight.castShadow = true;
+        scene.add(spotLight); 
+    }
 
-    // scene.add(spotLight); 
 
     var renderPass = new THREE.RenderPass(scene, camera);
     var effectFilm = new THREE.FilmPass(1.3, 0.7, 256, false);
@@ -77,8 +112,8 @@ var methods = {
         create : function () {
             camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.x = 100;
-            camera.position.y = 80;
-            camera.position.z = 80;
+            camera.position.y = 110;
+            camera.position.z = 120;
             // camera.lookAt(methods.spaceship.data.spaceshipModel.position);
             camera.lookAt(scene.position);
 
@@ -120,12 +155,12 @@ var methods = {
         create : function (opts) {
             var opts = opts || {
                 position : new THREE.Vector3(
-                    -600, 
-                    (Math.random() > 0.5 ? 1 : -1) * ~~(Math.random() * 300),
-                    (Math.random() > 0.5 ? 1 : -1) * ~~(Math.random() * 300)
+                    OPTIONS.stripes.startPosition.x, 
+                    (Math.random() > 0.5 ? 1 : -1) * ~~(Math.random() * OPTIONS.stripes.startPosition.y),
+                    (Math.random() > 0.5 ? 1 : -1) * ~~(Math.random() * OPTIONS.stripes.startPosition.z)
                 )
             };
-            var geometry = new THREE.PlaneBufferGeometry(3, 2);
+            var geometry = new THREE.PlaneBufferGeometry(OPTIONS.stripes.width, OPTIONS.stripes.height);
             var color = new THREE.Color(0x00ff00);
             color.setHSL(Math.random() * color.getHSL().h, Math.random() * color.getHSL().s, Math.random() * color.getHSL().l);
             // var meshMaterial = new THREE.MeshLambertMaterial({ color : 'white', side : THREE.DoubleSide, transparent : true});
@@ -136,10 +171,11 @@ var methods = {
             plane.position.z = opts.position.z;
             plane._type = 'stripe';
 
-            if (opts.position.z < 100 && opts.position.y < 100) {
+            if (Math.abs(opts.position.z) < OPTIONS.stripes.lightAppearDistance && 
+                Math.abs(opts.position.y) < OPTIONS.stripes.lightAppearDistance) {
                 var pointColor = color;
                 var pointLight = new THREE.PointLight(pointColor);
-                pointLight.distance = 500;
+                pointLight.distance = OPTIONS.stripes.light.distance;
 
                 plane.add(pointLight);
             }
@@ -147,19 +183,19 @@ var methods = {
             this.data.group.add(plane);
         },
         update : function (audioData) {
-            var multiplier = 1, scaleMiltiplier = 1, stepMuptiplier = 0, opacity = 0.5;
+            var speedMultiplier = 1, scaleMiltiplier = 1, stepMuptiplier = 0, opacity = 0.5;
             if (audioData.isPlaying) {
-                multiplier += audioData.volume * 5;
-                scaleMiltiplier += audioData.volume * 40;
-                // stepMuptiplier += audioData.volume * 1.5;
+                speedMultiplier += audioData.volume * OPTIONS.stripes.speedMultiplier;
+                scaleMiltiplier += audioData.volume * OPTIONS.stripes.scaleMiltiplier;
+                stepMuptiplier += audioData.volume * OPTIONS.stripes.intencity;
                 opacity += audioData.volume * 1.5;
             }
             var self = this;
             this.data.group.children.forEach(function (stripe) {
-                stripe.position.x += multiplier * 10;
+                stripe.position.x += speedMultiplier * 10;
                 stripe.scale.x = scaleMiltiplier;
                 stripe.material.opacity = opacity;
-                if (stripe.position.x >= 300) {
+                if (stripe.position.x >= OPTIONS.stripes.positionXForDie) {
                     self.data.group.remove(stripe);
                 }
             })
@@ -179,8 +215,8 @@ var methods = {
             var self = this;
 
             var loader = new THREE.OBJLoader();
-            loader.load('assets/textures/freedom7.obj', function (loadedMesh) {
-                var material = new THREE.MeshLambertMaterial({color: 'white'});
+            loader.load(OPTIONS.spaceship.meshUrl, function (loadedMesh) {
+                var material = new THREE.MeshLambertMaterial({color: OPTIONS.spaceship.color });
 
                 loadedMesh.children.forEach(function (child) {
                     child.material = material;
@@ -189,7 +225,7 @@ var methods = {
                 });
 
                 self.data.spaceshipModel = loadedMesh;
-                loadedMesh.scale.set(10, 10, 10);
+                loadedMesh.scale.set(OPTIONS.spaceship.scale, OPTIONS.spaceship.scale, OPTIONS.spaceship.scale);
                 loadedMesh.rotation.x = 0.3;
                 loadedMesh.rotation.z = 1/2 * Math.PI;
                 loadedMesh.position.x = 50;
@@ -197,7 +233,7 @@ var methods = {
             });
         },
         update : function (audioData) {
-            var multiplier = 1, positionMultiplier = 3;
+            var multiplier = 1, positionMultiplier = OPTIONS.spaceship.positionStep;
 
             if (audioData.isPlaying) {
                 // multiplier += audioData.volume * 20;

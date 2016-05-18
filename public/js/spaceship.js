@@ -136,11 +136,13 @@ var methods = {
             plane.position.z = opts.position.z;
             plane._type = 'stripe';
 
-            var pointColor = color;
-            var pointLight = new THREE.PointLight(pointColor);
-            pointLight.distance = 500;
+            if (opts.position.z < 100 && opts.position.y < 100) {
+                var pointColor = color;
+                var pointLight = new THREE.PointLight(pointColor);
+                pointLight.distance = 500;
 
-            plane.add(pointLight);
+                plane.add(pointLight);
+            }
 
             this.data.group.add(plane);
         },

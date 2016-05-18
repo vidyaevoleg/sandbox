@@ -138,7 +138,7 @@ var methods = {
 
             var pointColor = color;
             var pointLight = new THREE.PointLight(pointColor);
-            pointLight.distance = 400;
+            pointLight.distance = 500;
 
             plane.add(pointLight);
 
